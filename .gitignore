@@ -1,0 +1,12 @@
+#Compiled Source#
+*.exe
+*.dll
+*.so
+
+#Node Modules#
+**/node_modules
+
+#Secure Files#
+database.go
+key.go
+package-lock.json

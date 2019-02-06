@@ -1,0 +1,119 @@
+<html>
+<title>Xylem Pump Project</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="css/styles.css">
+
+<body>
+
+<!-- DISCONNECT ALERT -->
+<div id="disconnect-alert">
+	<div class="disconnect-background"></div>
+	<div class="disconnect-dialog data-card">
+		<div class="window-titlebar">Connection Lost</div>
+		<p style="margin:20px">Attempting to reconnect to server</p>
+	</div>
+</div>
+
+<!-- NAVIGATION BAR -->
+
+<nav class="navbar" id="sidebar"><br>
+	<div style="padding-bottom:14px">
+		<img src="graphics/GryphEnergySmall.png" style="width:100px;display:block;margin-left:auto;margin-right:auto;">
+	</div>
+		<div>
+			<p id="graph-data-label" style="margin-left:6px">Left Graph Data</p>
+			<hr style="margin-top:-14px;margin-bottom:-2px;">
+			<button id="spress-btn" class="w3-btn" style="width:92%;background-color:#2e6600;color:white;margin:6px;padding:4px;">Suc. Pressure</button>
+			<button id="dpress-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Dis. Pressure</button>
+			<button id="power-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Power</button>
+			<button id="torque-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Torque</button>
+			<button id="speed-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Speed</button>
+			<button id="flow-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px">Flow</button>
+			<!--
+			<button id="eff-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px">Efficiency</button>
+-->
+			<p style="margin-left:6px">Record Data</p>
+			<hr style="margin-top:-14px;margin-bottom:-2px;">
+			<!--
+			<button id="rec-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px">Start Recording</button>
+			<button id="test-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px;">TEST FEATURE</button>-->
+			<button id="server-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px;">Change Server</button>
+		</div>
+	</div>
+	<div style="position:fixed;bottom:10">
+		<button id="log-out-btn" class="w3-btn" style="background-color:#51b400;color:white;width:140%;margin:6px">Log out</button>
+	</div>
+</nav>
+
+<!-- INNER WINDOW -->
+<div style="margin-left:150px;">
+	<div class="window-container" id="window">
+		<div class="data-window">
+			<div class="window-titlebar">
+				<h7 id="window-title">Pump Data</h7>
+			</div>
+
+	<!-- GRAPHS AND LABELS -->
+			<!--
+			<div style="position:fixed;padding:8px;margin-bottom:-8px">
+				Suction
+				<hr>
+			</div>
+			<div style="padding:8px;margin-left:400px;margin-bottom:-8px">
+				Discharge
+				<hr>
+			</div> -->
+			<div style="position:absolute;width:400px;margin-top:20px">
+				<canvas height="220" id="inChart"></canvas>
+			</div>
+			<div style="position:absolute;width:400px;margin-left:400px;margin-top:20px">
+				<canvas height="220" id="outChart"></canvas>
+			</div>
+
+	<!-- PUMP DATA -->
+			<div style="position:absolute;bottom:310;left:200;" id="pump1in-tab">
+				
+				<table>
+					<tr>
+						<th>Suc. Pressure (psi)</th>
+						<th>Dis. Pressure (psi)</th>
+						<th>Power (kW)</th>
+						<th>Torque (Nm)</th>
+						<th>Speed (rpm)</th>
+						<th>Flow (Gal/m)</th>
+						<!--<th>Efficiency</th>-->
+					</tr>
+					<tr>
+						<td id="n1">23.4</td>
+						<td id="n2">23.4</td>
+						<td id="n3">23.4</td>
+						<td id="n4">23.4</td>
+						<td id="n5">23.4</td>
+						<td id="n6">23.4</td>
+						<!--<td id="n7">23.4</td>-->
+					</tr>
+				</table>
+			</div>
+
+	<!-- Download complete Notification-->
+	<div id="downloadNotify" class="notification">
+		Download Complete!
+	</div>
+
+	<!-- BACKGROUND IMAGE -->
+			<img src="graphics/front-pump-final.png" style="width:100%;margin-top:390px;z-index:1;" id="front-pump-img">
+			<div id="change-server" style="padding:6px;background-color:blue;position:absolute;bottom:10;right:10;display:none">
+				Change Server Address
+				<input type="text" id="server-text">
+				<button id="change-server-btn">Change Server</button>
+			</div>
+		</div> 
+	</div>
+</div>
+
+<script src="./data.js"></script>
+
+</body>
+</html>

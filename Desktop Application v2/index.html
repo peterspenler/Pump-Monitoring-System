@@ -1,0 +1,28 @@
+<html>
+
+<head>
+<title>Xylem Project Login</title>
+<link rel="stylesheet" href="https://w3schools.com/w3css/4/w3.css">
+<link href="css/styles.css" rel="stylesheet">
+</head>
+
+<body>
+<div class="w3-main">
+	<div class="w3-container w3-card data-card login-container">
+    
+    <img src="graphics/GryphEnergy.png" style="width:100%;margin-left:-6px;margin-bottom:10px">
+    <h7 style="color:red;margin-left:10px;" id="error-text"></h7>
+		<form style="margin-top:10px;margin-left:10px;margin-right:10px;" method="post" action="localhost:5000/api/login">
+  			<input type="text" id="uname" name="uname" placeholder="Username" style="color:black;background-color:white;">
+  			<input type="password" id="password" name="password" placeholder="Password" style="color:black;background-color:white;">
+  			<button type="button" class="w3-btn login-button" style="width:100%;" id="login-button">Login</button>
+		</form>
+
+	</div>
+</div>
+
+<script src="./login.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "uoguelph-pump-application",
+  "description": "Application for monitoring pumps",
+  "version": "1.0.1",
+  "author": "Peter Spenler",
+  "main": "index.js",
+  "dependencies": {
+    "chart.js": "^2.7.2",
+    "electron-dl": "^1.12.0",
+    "jquery": "^3.3.1",
+    "jquery-ui": "^1.12.1"
+  },
+  "devDependencies": {
+    "electron": "^1.8.3",
+    "electron-builder": "^20.34.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder",
+    "build": "electron-builder --win"
+  },
+  "win": {
+    "title": "UoGuelph Pump Monitor",
+    "author": "Peter Spenler",
+    "target": [
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ]
+  }
+}

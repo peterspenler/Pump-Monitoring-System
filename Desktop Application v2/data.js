@@ -1,0 +1,549 @@
+const {ipcRenderer} = require("electron");
+const {dialog} = require('electron').remote
+let $ = require('jquery')
+require('chart.js')
+
+//Variable initialization
+var socket
+var page = "front"
+var keepTime = 100;
+var data = {
+	"temp": ["23", "45", "38", "89", "12", "6"],
+    "press":["56", "93", "53", "32"],
+    "torq":["18", "63"],
+    "flow":["27"]
+	};
+var histData = {
+	"temp": [[],[],[],[],[],[]],
+	"press": [[],[],[],[]],
+	"torq": [[],[]],
+	"flow": [[],[]],
+	"time": []
+};
+var histDataNew = {
+	"vals": [[],[],[],[],[],[],[]],
+	"time": []
+}
+var histTime = 0
+var graphType = 0
+var heartbeat = -1
+
+var domain ="localhost:5000"
+
+//Data index constants
+const SUC_PRESS = 0
+const DIS_PRESS = 1
+const POWER = 3
+const TORQUE = 4
+const SPEED = 2
+const FLOW = 5
+const EFFICIENCY = 6
+
+//Hide images and table which are not visible in the first window
+$('#disconnect-alert').hide()
+
+//Chart initialization
+var inConfig = {
+	type:"line",
+	data:{
+		labels:histDataNew.time,
+		datasets:[{
+			data:histDataNew.vals[0],
+			fill:false,
+			borderColor:"rgb(81, 180, 000)",
+			lineTension:0.1
+		}]},
+	options:{
+		tooltips:{
+			enabled: false
+		},
+		scales:{
+			xAxes:[{
+				display: false
+			}],
+			yAxes:[{
+				scaleLabel:{
+					display:true,
+					labelString: 'Suction Pressure (psi)'
+				},
+				ticks:{
+					suggestedMin: -10,
+					suggestedMax: 50
+				}
+			}]	
+		},
+		animation:{
+			duration: 400
+		},
+		legend:{
+			display: false
+		},
+		elements:{
+			point:{
+				radius: 1
+			}
+		},
+		events: ['click']
+	}
+}
+
+var outConfig = {
+	type:"line",
+	data:{
+		labels:histDataNew.time,
+		datasets:[{
+			data:histDataNew.vals[1],
+			fill:false,
+			borderColor:"rgb(81, 180, 000)",
+			lineTension:0.1
+		}]},
+	options:{
+		tooltips:{
+			enabled: false
+		},
+		scales:{
+			xAxes:[{
+				display: false
+			}],
+			yAxes:[{
+				scaleLabel:{
+					display:true,
+					labelString: 'Discharge Pressure (psi)'
+				},
+				ticks:{
+					suggestedMin: -10,
+					suggestedMax: 50
+				}
+			}]	
+		},
+		animation:{
+			duration: 200
+		},
+		legend:{
+			display: false
+		},
+		elements:{
+			point:{
+				radius: 1
+			}
+		},
+		events: ['click']
+	}
+}
+
+var inChart = new Chart(document.getElementById("inChart"), inConfig);
+var outChart = new Chart(document.getElementById("outChart"), outConfig);
+
+//DATA RECORDING FUNCTIONS
+
+var isRecording = 0;
+var startRec
+var endRec
+
+$('#rec-btn').click(function (){
+	getServertime()
+})
+
+$('#test-btn').click(function (){
+	console.log("click")
+	$('#downloadNotify').css('opacity', '100')
+	setTimeout(function(){$('#downloadNotify').css('opacity', '0')}, 2000)
+})
+
+function recordCallback(time){
+	if(isRecording == 1){
+		endRec = time
+		console.log('E:' + endRec)
+		if(endRec != ""){
+			isRecording = -1;
+			$.post( "http://" + domain + "/finishRecord", {startRec: startRec, endRec: endRec}, function(result){
+				console.log(result)
+				$('#rec-btn').html("Downloading");
+				$('#rec-btn').css('background-color', '#d8b124');
+				dialog.showOpenDialog({title: "Save Recording", defaultPath: "things.csv", properties: ['openDirectory']}, (fileName) => {
+					console.log(fileName[0])
+					console.log(result)
+					downloadFile(result, fileName[0])
+				});
+			});
+
+		}
+	}else if(isRecording == 0){
+		startRec = time
+		console.log('S:' + startRec)
+		if(startRec != ""){
+			isRecording = 1;
+			$('#rec-btn').html("Stop Recording");
+			$('#rec-btn').css('background-color', '#bb5100');
+		}
+	}
+}
+
+function downloadFile(name, directory){
+	console.log("cool beans")
+	ipcRenderer.send("download", {
+	    url: "http://" + domain + "/getRecord/" + name,
+	    properties: {directory: directory}
+	});
+	ipcRenderer.on("download complete", (event, file) => {
+		console.log("NEAT")
+	    console.log(file); // Full file path
+	    isRecording = 0;
+	    $('#downloadNotify').css('opacity', '100')
+	    $('#rec-btn').html("Start Recording");
+		$('#rec-btn').css('background-color', '#51b400');
+		setTimeout(function(){
+			$('#downloadNotify').css('opacity', '0')
+		}, 4000)
+	});
+}
+
+function getServertime(){
+	time = ""
+	$.ajax({
+		type: "GET",
+		url: "http://" + domain + "/serverTime",
+		timeout: 1000,
+		success: function(data, textStatus){
+			recordCallback(data.serverTime)
+		},
+		error: function(XMLHttpRequest, textStatus, errorThrown){
+			alert("Cannot reach server")	
+		}
+	})
+}
+
+//GRAPH MODIFICATION FUNCTIONS
+
+var whichGraph = 'l'
+var lGraphData = 0
+var rGraphData = 1
+
+$('#lgraph-btn').click(function (){
+	changeLeft()
+})
+
+$('#rgraph-btn').click(function (){
+	changeRight()
+})
+
+function changeRight(){
+	whichGraph = 'r'
+	$('#lgraph-btn').css('background-color', '51b400');
+	$('#rgraph-btn').css('background-color', '2e6600');
+	$('#graph-data-label').html("Right Graph Data");
+	uncheckGraphButtons();
+	checkActiveButtons();
+}
+
+function changeLeft(){
+	whichGraph = 'l'
+	$('#lgraph-btn').css('background-color', '2e6600');
+	$('#rgraph-btn').css('background-color', '51b400');
+	$('#graph-data-label').html("Left Graph Data");
+	uncheckGraphButtons();
+	checkActiveButtons();
+}
+
+$('#inChart').click(
+	function(event){
+		changeLeft();
+	}
+)
+
+$('#outChart').click(
+	function(event){
+		changeRight();
+	}
+)
+
+$('#spress-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[SUC_PRESS]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Suction Pressure (psi)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
+		lGraphData = SUC_PRESS;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[SUC_PRESS]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Suction Pressure (psi)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
+		rGraphData = SUC_PRESS;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#dpress-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[DIS_PRESS]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Discharge Pressure (psi)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
+		lGraphData = DIS_PRESS;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[DIS_PRESS]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Discharge Pressure (psi)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
+		rGraphData = DIS_PRESS;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#power-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[POWER]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Power (kW)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 8
+		lGraphData = POWER;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[POWER]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Power (kW)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 8
+		rGraphData = POWER;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#torque-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[TORQUE]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Torque (Nm)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 40
+		lGraphData = TORQUE;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[TORQUE]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Torque (Nm)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 40
+		rGraphData = TORQUE;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#speed-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[SPEED]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Speed (rpm)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 2000
+		lGraphData = SPEED;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[SPEED]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Speed (rpm)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 2000
+		rGraphData = SPEED;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#flow-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[FLOW]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Flow (gpm)'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 400
+		lGraphData = FLOW;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[FLOW]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Flow (gpm)'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 400
+		rGraphData = FLOW;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+$('#eff-btn').click(function (){
+	if(whichGraph == 'l'){
+		inConfig.data.datasets[0].data = histDataNew.vals[EFFICIENCY]
+		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Efficiency'
+		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 100
+		lGraphData = EFFICIENCY;
+	} else{
+		outConfig.data.datasets[0].data = histDataNew.vals[EFFICIENCY]
+		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Efficiency'
+		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
+		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 100
+		rGraphData = EFFICIENCY;
+	}
+
+	inChart.update()
+	outChart.update()
+	uncheckGraphButtons()
+	checkActiveButtons()
+})
+
+function uncheckGraphButtons(){
+	$('#spress-btn').css('background-color', '51b400');
+	$('#dpress-btn').css('background-color', '51b400');
+	$('#power-btn').css('background-color', '51b400');
+	$('#torque-btn').css('background-color', '51b400');
+	$('#speed-btn').css('background-color', '51b400');
+	$('#flow-btn').css('background-color', '51b400');
+	$('#eff-btn').css('background-color', '51b400');
+}
+
+function checkActiveButtons(){
+	var activeType = -1
+	if(whichGraph == 'l'){
+		activeType = lGraphData;
+	}else{
+		activeType = rGraphData;
+	}
+	switch(activeType){
+		case 0:
+			$('#spress-btn').css('background-color', '2e6600');
+			break;
+		case 1:
+			$('#dpress-btn').css('background-color', '2e6600');
+			break;
+		case 2:
+			$('#power-btn').css('background-color', '2e6600');
+			break;
+		case 3:
+			$('#torque-btn').css('background-color', '2e6600');
+			break;
+		case 4:
+			$('#speed-btn').css('background-color', '2e6600');
+			break;
+		case 5:
+			$('#flow-btn').css('background-color', '2e6600');
+			break;
+		case 6:
+			$('#eff-btn').css('background-color', '2e6600');
+			break;
+	}
+
+}
+
+//LOG OUT BUTTON
+$('#log-out-btn').click(function (){
+	window.location.href = "./index.html"
+})
+
+
+//WEBSOCKET CONNECTIONS
+function connect(){
+	console.log("Attempting to connect")
+	socket = new WebSocket("ws://" + domain + "/ws")
+	
+	socket.onopen = function(){
+		console.log("Websocket Connected Successfully")
+		ipcRenderer.send("authCookie")
+		ipcRenderer.on("authCookieReturn", (event, cookie) => {
+			console.log(cookie)
+			socket.send(cookie[0].value)
+		})
+		//socket.send("08NW7pPjArhIxyfOrdVOKWnZYCVSSTfFUxUK5jcmIaU=")
+	}
+
+	socket.onmessage = function(msg){
+		console.log(msg)
+
+		data = JSON.parse(msg.data)
+
+		$('#n1').text(String(data.measurement[SUC_PRESS]).substring(0,6));
+		$('#n2').text(String(data.measurement[DIS_PRESS]).substring(0,6));
+		$('#n3').text(String(data.measurement[POWER]).substring(0,6));
+		$('#n4').text(String(data.measurement[TORQUE]).substring(0,6));
+		$('#n5').text(String(data.measurement[SPEED]).substring(0,6));
+		$('#n6').text(String(data.measurement[FLOW]).substring(0,6));
+
+		for(var i = 0; i < 6; i++){
+			histDataNew.vals[i].push(parseFloat(data.measurement[i]));
+			if(histTime > keepTime){
+				histDataNew.vals[i].shift();
+			}
+		}
+/*
+		var efficiency = ((9.81 * (histDataNew.vals[5][histDataNew.vals[5].length - 1] * 0.00006309) * ((histDataNew.vals[1][histDataNew.vals[1].length - 1] - histDataNew.vals[0][histDataNew.vals[0].length - 1])/3.2808))/(histDataNew.vals[2][histDataNew.vals[2].length - 1])) * 100
+
+		if(isNaN(efficiency)){
+			efficiency = 0;
+		}
+
+		$('#n7').text(efficiency.toFixed(3))
+
+		histDataNew.vals[6].push(efficiency);
+		if(histTime > keepTime){
+			histDataNew.vals[6].shift();
+		}
+*/
+		histDataNew.time.push(histTime)
+		if(histTime > keepTime){
+			histDataNew.time.shift()
+		}
+
+		histTime++;
+		inChart.update();
+		outChart.update();
+		heartbeat = 1;
+	}
+}
+
+$('#change-server-btn').click(function (){
+	console.log($('#server-text').val())
+	domain = $('#server-text').val();
+})
+
+var changingServer = false
+
+$('#server-btn').click(function (){
+	if(changingServer){
+		$('#change-server').css("display", "none")
+		changingServer = false;
+	}else{
+		$('#change-server').css("display", "block")
+		changingServer = true;
+	}
+})
+
+
+setInterval( function(){
+	if(heartbeat != -1){
+		if(heartbeat == 0){
+			$('#disconnect-alert').show()
+			socket.close()
+			connect()
+		}
+		else{
+			heartbeat = 0
+			$('#disconnect-alert').hide()
+		}
+	}else{
+		heartbeat = 0
+	}
+}, 2000)
+
+connect()

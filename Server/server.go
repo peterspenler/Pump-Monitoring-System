@@ -89,7 +89,10 @@ func heartbeatMonitor(heartbeat *int, m *melody.Melody) {
 		} else if *heartbeat == 1 {
 			*heartbeat = 0
 		} else if *heartbeat == 0 {
-			m.Broadcast([]byte(`{"error": "src_disconnect"}`)) //TODO make this a filtered broadcast
+			m.BroadcastFilter([]byte(`{"error": "src_disconnect"}`), func(s *melody.Session) bool {
+				auth, _ := s.Get("auth")
+				return auth == true
+			})
 			fmt.Println("LOST CONN")
 			*heartbeat = 2
 		}

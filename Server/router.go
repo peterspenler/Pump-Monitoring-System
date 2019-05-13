@@ -167,6 +167,12 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 		if authorized {
 			s.Set("auth", true)
 			fmt.Println("CORRECT WEBSOCKET TOKEN")
+			if *heartbeat == 2{
+				m.BroadcastFilter([]byte(`{"error": "src_disconnect"}`), func(s *melody.Session) bool {
+					auth, _ := s.Get("auth")
+					return auth == true
+				})
+			}
 			return
 		}
 

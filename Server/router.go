@@ -9,20 +9,31 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
-	//"os"
-	//"io"
 	"io/ioutil"
 )
 
-func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
+// This function initializes the router for handling HTTP requests
+// Input: melody Websockets session, users database, heartbeat int pointer
+// Return: gin router 
+func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 
-	r := gin.Default()
+	// This initializes a default gin session in release mode
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
 
+	// This defines a '/api' URL subgroup
+	// At this point that only includes login functionality
 	api := r.Group("/api")
 	{
+		// This prevents clients from making GET requests to the login API
 		api.GET("/login", func(c *gin.Context) {
 			c.Writer.WriteHeader(http.StatusUnauthorized)
 		})
+
+		// This setting handles authentication on POST requests to the login API
+		//
+		// If the client POSTs a valid username and password, then a JWT is generated
+		// and returned to the client. Otherwise a 401 code with a message is returned
 		api.POST("/login", func(c *gin.Context) {
 			uname := c.PostForm("uname")
 			password := c.PostForm("password")
@@ -47,15 +58,33 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 		})
 	}
 
+	// This setting handles data transfer from the LabView program via an HTTP GET rather
+	// than via Websockets. This is a temporary function, as there were issues getting the
+	// LabView program to send messages after making a Websocket connection.
+	//
+	// There is some future work to perform here.
+	// Most importantly this should be changed to either back to a websocket connection
+	// or into a POST request. This will keep the data out of the URL and increase the
+	// security of the application.
+	r.GET("/data/:key", func(c *gin.Context){
+		fmt.Println("Data")
+		key := c.Param("key")
+		go handleLVData(key, m, heartbeat)
+	})
+
+	// This setting prints a message to the console if a GET request is made to the
+	// base of the domain
 	r.GET("/", func(c *gin.Context) {
 		fmt.Println("ROOT REQUEST")
 	})
 
-	//Posts username and hashed password to console for private user addition
+	// Serves a page for adding a new user
 	r.GET("/genusr", func(c *gin.Context) {
 		http.ServeFile(c.Writer, c.Request, "genusr.html")
 	})
 
+	// Prints the username and hash of the password entered on the /genusr page
+	// to the console
 	r.POST("/genusr", func(c *gin.Context) {
 		uname := c.PostForm("uname")
 		password := c.PostForm("password")
@@ -69,7 +98,14 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 		fmt.Println("USER: ", uname, "PASS:", string(hash))
 	})
 
-	//Handles Data Recording
+	// RECORDING AND RECORDING TRANSFER
+	// This is a feature in development.
+	// So far a recording can be started and finished and a file can be downloaded,
+	// but no communication is made with the labview program, so a real recording
+	// can't be triggered and real data can't be downloaded
+
+	// Tells the server to finish a recording
+	// returns the name of the file the recoding is saved to
 	r.POST("/finishRecord", func(c *gin.Context) {
 		recordStart := c.PostForm("startRec")
 		recordEnd := c.PostForm("endRec")
@@ -78,6 +114,7 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 		c.String(http.StatusOK, "FL_insurance_sample.csv")
 	})
 
+	// Serves a recoding file based on the filename in the request
 	r.GET("/getRecord/:filename", func(c *gin.Context) {
 		filename := c.Param("filename")
 		fmt.Println(filename)
@@ -93,6 +130,7 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 		http.ServeContent(c.Writer, c.Request, filename, time.Now(), bytes.NewReader(data))
 	})
 
+	// This request returns the current time as known to the server in JSON
 	r.GET("/serverTime", func(c *gin.Context) {
 		currentTime := time.Now().UTC()
 		c.JSON(http.StatusOK, gin.H{
@@ -100,22 +138,28 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 		})
 	})
 
-	//Handles WebSocket requests
+	// This settting handles Websocket requests using melody
 	r.GET("/ws", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
 	})
 
-	//Handles webSocket message
+	// This handler handles all Websocket messages
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 
 		fmt.Println("MSG:", string(msg))
 		
+		// This statement checks if the message is from a source (i.e. the LabView program).
+		// If the message is from a source it repackages the data and broadcasts it to all
+		// authourized clients
 		if value, _ := s.Get("source"); value == true {
-			//fmt.Println("SOURCE MSG RECEIVED")
-			data, _ := formatData(string(msg))
-			//fmt.Println(data)
 
-			msgFwd := []byte(`{"measurement": ` + buildTable(data, "Temperature", 13) + `}`)
+			// Future work:
+			// If this program is adapted so that the LabView data is received via websockets
+			// then the code in this if statement should be removed, and should instead call
+			// handleLVData().
+			data, _ := formatData(string(msg))
+
+			msgFwd := []byte(`{"measurement": ` + buildArray(data) + `}`)
 
 			m.BroadcastFilter(msgFwd, func(s *melody.Session) bool {
 				auth, _ := s.Get("auth")
@@ -124,6 +168,11 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 			return
 		}
 
+		// This section authenticates a new Websocket connnection
+		//
+		// When a new client connects to the server the first message it sends is a copy of its JWT.
+		// This JWT is then used to authenticate the client. If the client is authenticated then the
+		// 'auth' flag for its session is set to true.
 		authorized, _, _ := authenticateToken(string(msg))
 
 		if authorized {
@@ -132,16 +181,48 @@ func initRouter(m *melody.Melody, usrDB *sql.DB) *gin.Engine {
 			return
 		}
 
+		// This statement checks if the message is a registration message from the LabView program.
+		//
+		// The first message once the LabView program opens a Websocket connection contains a key
+		// which will be used to authenticate and register it as a data source. It is registered by
+		// setting a "soruce" flag in its session to true.
 		if string(msg) == string(getKey()) {
 			s.Set("source", true)
 			fmt.Println("SOURCE AUTHENTICATED BY KEY")
 		}
 	})
 
+	// This handler resets the "auth" and "source" flags when a Websocket session disconnects
 	m.HandleDisconnect(func(s *melody.Session) {
 		s.Set("auth", false)
 		s.Set("source", false)
 	})
 
+	// Here is where the router is returned
 	return r
+}
+
+// This function handles data from the LabView program
+// Input: data string from LabView, melody session, heartbeat int pointer
+// Return: N/a
+//
+// Future work:
+// This function could also be adapted to handle data sent via Websockets as well.
+// Keeping this as a separate function is important as this processing can then be
+// run concurrently using "go". If this function is called sequentially it can hold
+// up the server and keep it from receiveing data after too much data is sent.
+func handleLVData(key string, m *melody.Melody, heartbeat *int){
+	fmt.Println("FUNC")
+	data, err := formatData(key)
+	if err != nil {
+		fmt.Println("ERR:", err)
+	}else{
+		msgFwd := []byte(`{"measurement": ` + buildArray(data) + `, "error": "none"}`)
+		fmt.Println("\n" + string(msgFwd) + "\n")
+		m.BroadcastFilter(msgFwd, func(s *melody.Session) bool {
+			auth, _ := s.Get("auth")
+			return auth == true
+		})
+		*heartbeat = 1
+	}
 }

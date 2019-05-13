@@ -7,9 +7,12 @@ import (
 	"os"
 )
 
+// This finction opens the users database
+// Input: N/a
+// Return: a DB object with the user database
 func openUserDB() *sql.DB {
 	//Connect to users Database
-	dbusr, dberr := sql.Open("mysql", "XXXXX:YYYYY@/users")
+	dbusr, dberr := sql.Open("mysql", getDatabaseAuth())
 
 	//Database error checking and opening confirmation
 	if dberr != nil {
@@ -24,6 +27,10 @@ func openUserDB() *sql.DB {
 	}
 }
 
+// This function gets the data for a single user from the users database
+// Input: the user's username string, the user database DB object
+// Return: the user's username string, full name string, password hash string, userid int, and an error*
+//	  *The error field is nil if there are no errors
 func getUserData(uname string, dbusr *sql.DB) (string, string, string, int, error) {
 	rows, queryerr := dbusr.Query("SELECT * FROM users WHERE username=?", uname)
 

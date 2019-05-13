@@ -30,8 +30,6 @@ function checkLogin(){
 			}
 		}
 	})
-
-	console.log("DONE")	
 }
 
 $('#uname').keypress(function(e) {

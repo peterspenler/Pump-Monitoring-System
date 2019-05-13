@@ -1,9 +1,7 @@
-const {app, BrowserWindow, ipcMain} = require('electron')
+const {app, BrowserWindow, ipcMain, dialog, session} = require('electron')
 const url = require('url')
 const path = require('path')
 const {download} = require("electron-dl");
-const { dialog } = require('electron')
-const { session } = require('electron')
 const {DOMAIN} = require('./js/const.js')
 
 let win
@@ -37,7 +35,7 @@ function createWindow(){
 
     ipcMain.on("setCookie", (event, info) =>{
     	session.defaultSession.cookies.set({
-	        url: DOMAIN, //the url of the cookie.
+	        url: 'http://' + DOMAIN, //the url of the cookie.
 	        name: info.name, // a name to identify it.
 	        value: info.data, // the value that you want to save
 	        expirationDate: info.exptime,

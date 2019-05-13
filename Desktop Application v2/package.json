@@ -6,12 +6,12 @@
   "main": "index.js",
   "dependencies": {
     "chart.js": "^2.7.2",
-    "electron-dl": "^1.12.0",
+    "electron-dl": "^1.14.0",
     "jquery": "^3.3.1",
     "jquery-ui": "^1.12.1"
   },
   "devDependencies": {
-    "electron": "^1.8.3",
+    "electron": "^1.8.8",
     "electron-builder": "^20.34.0"
   },
   "scripts": {

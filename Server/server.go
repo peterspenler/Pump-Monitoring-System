@@ -26,9 +26,6 @@ func main() {
 	// LabView program
 	go heartbeatMonitor(&heartbeat, m)
 
-	dat, _ := formatData("SRC$$12$$13$$16$$15")
-	fmt.Println(buildArray(dat))
-
 	r.Run(":4000")
 }
 

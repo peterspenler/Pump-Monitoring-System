@@ -12,6 +12,11 @@ import (
 	"flag"
 )
 
+// This is a tesing program
+// It is designed to simulate how LabView sends data to the server
+// so that the server can be developed without needing to run LabView
+
+// Hold the address of the server
 var addr = flag.String("addr", "localhost:5000", "http service address")
 
 func main() {
@@ -31,7 +36,7 @@ func main() {
 	mockSensorValues(c)
 }
 
-//Generates random sensor values for testing the /stats page
+//Generates random sensor values for testing the server without LabView
 func mockSensorValues(c *websocket.Conn) {
 	temps := [6]float64{0, 0, 0, 0, 0, 0}
 	press := [4]float64{0, 0, 0, 0}
@@ -74,6 +79,7 @@ func mockSensorValues(c *websocket.Conn) {
 
 }
 
+// Returns the absolute value of the input
 func Abs(n int) int {
 	if n < 0 {
 		return -n
@@ -81,7 +87,7 @@ func Abs(n int) int {
 	return n
 }
 
-//Builds the HTML table for sensor data
+// Builds the mock data into the format of the LabView string
 func buildTable(array []float64, title string, num int) string {
 	var buffer bytes.Buffer
 

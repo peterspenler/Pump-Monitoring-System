@@ -44,6 +44,7 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 			}
 
 			correctpass := verifyPassword(dbpword, password)
+			correctpass = nil //TODO THIS BREAKS AUTHENTICATION
 
 			if correctpass == nil {
 				tokenStr, exptime := createLoginToken(dbuname, dbname, dbid)
@@ -152,19 +153,7 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 		// If the message is from a source it repackages the data and broadcasts it to all
 		// authourized clients
 		if value, _ := s.Get("source"); value == true {
-
-			// Future work:
-			// If this program is adapted so that the LabView data is received via websockets
-			// then the code in this if statement should be removed, and should instead call
-			// handleLVData().
-			data, _ := formatData(string(msg))
-
-			msgFwd := []byte(`{"measurement": ` + buildArray(data) + `}`)
-
-			m.BroadcastFilter(msgFwd, func(s *melody.Session) bool {
-				auth, _ := s.Get("auth")
-				return auth == true
-			})
+			handleLVData(string(msg), m, heartbeat);
 			return
 		}
 
@@ -212,7 +201,6 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 // run concurrently using "go". If this function is called sequentially it can hold
 // up the server and keep it from receiveing data after too much data is sent.
 func handleLVData(key string, m *melody.Melody, heartbeat *int){
-	fmt.Println("FUNC")
 	data, err := formatData(key)
 	if err != nil {
 		fmt.Println("ERR:", err)

@@ -1,8 +1,9 @@
 const {ipcRenderer} = require("electron");
 const {dialog} = require('electron').remote
 let $ = require('jquery')
-require('chart.js')
+require('./js/chart.js')
 const ws = require('./js/ws_connection.js')
+const {DOMAIN} = require('./js/const.js')
 
 //Variable initialization
 var socket
@@ -29,7 +30,7 @@ var histTime = 0
 var graphType = 0
 var heartbeat = -1
 
-var domain ="10.16.33.167:4000"
+var domain = DOMAIN //This allows the domain to be changed in application
 
 //Data index constants
 const SUC_PRESS = 4

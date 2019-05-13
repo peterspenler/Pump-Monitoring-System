@@ -1,16 +1,15 @@
 let $ = require('jquery')
 const {ipcRenderer} = require("electron");
+const {DOMAIN} = require('./js/const.js')
 
 $('#login-button').on('click', checkLogin)
-
-const domain = "10.16.33.167:4000"
 
 function checkLogin(){     
 	console.log("USER: " + $('#uname').val() + " PASS:" + $('#password').val());
 
 	$.ajax({
 		type: "POST",
-		url: "http://" + domain + "/api/login",
+		url: "http://" + DOMAIN + "/api/login",
 		data: {uname: $('#uname').val(), password: $('#password').val()},
 		timeout: 1000,
 		success: function(msg){

@@ -36,7 +36,7 @@ func buildArray(array []float64) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("[")
-	max := len(array) - 1
+	max := len(array) - 2
 	for i := 0; i < max; i++ {
 		buffer.WriteString(fmt.Sprintf("\"%f\",", array[i]))
 	}
@@ -65,8 +65,11 @@ func formatData(msg string) (data []float64, err error){
 				return nil, errors.New("Float parsing error")
 			}
 		}
-
-		return floats, nil
+		if len(floats) == 0{
+			return nil, errors.New("Made empty array")
+		}else{
+			return floats, nil
+		}
 	} else {
 		return nil, errors.New("Invalid starting tag")
 	}

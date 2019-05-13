@@ -2,6 +2,7 @@ const {ipcRenderer} = require("electron");
 const {dialog} = require('electron').remote
 let $ = require('jquery')
 require('chart.js')
+const ws = require('./js/ws_connection.js')
 
 //Variable initialization
 var socket
@@ -28,19 +29,23 @@ var histTime = 0
 var graphType = 0
 var heartbeat = -1
 
-var domain ="localhost:5000"
+var domain ="10.16.33.167:4000"
 
 //Data index constants
-const SUC_PRESS = 0
-const DIS_PRESS = 1
-const POWER = 3
-const TORQUE = 4
-const SPEED = 2
-const FLOW = 5
+const SUC_PRESS = 4
+const DIS_PRESS = 5
+const POWER = 1
+const TORQUE = 2
+const SPEED = 0
+const FLOW = 3
 const EFFICIENCY = 6
 
 //Hide images and table which are not visible in the first window
 $('#disconnect-alert').hide()
+
+//Connects the WebSocket
+ws.connect()
+ws.heartbeat()
 
 //Chart initialization
 var inConfig = {
@@ -48,7 +53,7 @@ var inConfig = {
 	data:{
 		labels:histDataNew.time,
 		datasets:[{
-			data:histDataNew.vals[0],
+			data:histDataNew.vals[SUC_PRESS],
 			fill:false,
 			borderColor:"rgb(81, 180, 000)",
 			lineTension:0.1
@@ -92,7 +97,7 @@ var outConfig = {
 	data:{
 		labels:histDataNew.time,
 		datasets:[{
-			data:histDataNew.vals[1],
+			data:histDataNew.vals[DIS_PRESS],
 			fill:false,
 			borderColor:"rgb(81, 180, 000)",
 			lineTension:0.1
@@ -422,25 +427,25 @@ function checkActiveButtons(){
 		activeType = rGraphData;
 	}
 	switch(activeType){
-		case 0:
+		case SUC_PRESS:
 			$('#spress-btn').css('background-color', '2e6600');
 			break;
-		case 1:
+		case DIS_PRESS:
 			$('#dpress-btn').css('background-color', '2e6600');
 			break;
-		case 2:
+		case POWER:
 			$('#power-btn').css('background-color', '2e6600');
 			break;
-		case 3:
+		case TORQUE:
 			$('#torque-btn').css('background-color', '2e6600');
 			break;
-		case 4:
+		case SPEED:
 			$('#speed-btn').css('background-color', '2e6600');
 			break;
-		case 5:
+		case FLOW:
 			$('#flow-btn').css('background-color', '2e6600');
 			break;
-		case 6:
+		case EFFICIENCY:
 			$('#eff-btn').css('background-color', '2e6600');
 			break;
 	}
@@ -451,66 +456,6 @@ function checkActiveButtons(){
 $('#log-out-btn').click(function (){
 	window.location.href = "./index.html"
 })
-
-
-//WEBSOCKET CONNECTIONS
-function connect(){
-	console.log("Attempting to connect")
-	socket = new WebSocket("ws://" + domain + "/ws")
-	
-	socket.onopen = function(){
-		console.log("Websocket Connected Successfully")
-		ipcRenderer.send("authCookie")
-		ipcRenderer.on("authCookieReturn", (event, cookie) => {
-			console.log(cookie)
-			socket.send(cookie[0].value)
-		})
-		//socket.send("08NW7pPjArhIxyfOrdVOKWnZYCVSSTfFUxUK5jcmIaU=")
-	}
-
-	socket.onmessage = function(msg){
-		console.log(msg)
-
-		data = JSON.parse(msg.data)
-
-		$('#n1').text(String(data.measurement[SUC_PRESS]).substring(0,6));
-		$('#n2').text(String(data.measurement[DIS_PRESS]).substring(0,6));
-		$('#n3').text(String(data.measurement[POWER]).substring(0,6));
-		$('#n4').text(String(data.measurement[TORQUE]).substring(0,6));
-		$('#n5').text(String(data.measurement[SPEED]).substring(0,6));
-		$('#n6').text(String(data.measurement[FLOW]).substring(0,6));
-
-		for(var i = 0; i < 6; i++){
-			histDataNew.vals[i].push(parseFloat(data.measurement[i]));
-			if(histTime > keepTime){
-				histDataNew.vals[i].shift();
-			}
-		}
-/*
-		var efficiency = ((9.81 * (histDataNew.vals[5][histDataNew.vals[5].length - 1] * 0.00006309) * ((histDataNew.vals[1][histDataNew.vals[1].length - 1] - histDataNew.vals[0][histDataNew.vals[0].length - 1])/3.2808))/(histDataNew.vals[2][histDataNew.vals[2].length - 1])) * 100
-
-		if(isNaN(efficiency)){
-			efficiency = 0;
-		}
-
-		$('#n7').text(efficiency.toFixed(3))
-
-		histDataNew.vals[6].push(efficiency);
-		if(histTime > keepTime){
-			histDataNew.vals[6].shift();
-		}
-*/
-		histDataNew.time.push(histTime)
-		if(histTime > keepTime){
-			histDataNew.time.shift()
-		}
-
-		histTime++;
-		inChart.update();
-		outChart.update();
-		heartbeat = 1;
-	}
-}
 
 $('#change-server-btn').click(function (){
 	console.log($('#server-text').val())
@@ -528,22 +473,3 @@ $('#server-btn').click(function (){
 		changingServer = true;
 	}
 })
-
-
-setInterval( function(){
-	if(heartbeat != -1){
-		if(heartbeat == 0){
-			$('#disconnect-alert').show()
-			socket.close()
-			connect()
-		}
-		else{
-			heartbeat = 0
-			$('#disconnect-alert').hide()
-		}
-	}else{
-		heartbeat = 0
-	}
-}, 2000)
-
-connect()

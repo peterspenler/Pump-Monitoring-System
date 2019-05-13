@@ -17,7 +17,7 @@ import (
 // so that the server can be developed without needing to run LabView
 
 // Hold the address of the server
-var addr = flag.String("addr", "localhost:5000", "http service address")
+var addr = flag.String("addr", "localhost:4000", "http service address")
 
 func main() {
 
@@ -93,7 +93,7 @@ func buildTable(array []float64, title string, num int) string {
 
 	max := num - 1
 	for i := 0; i <= max; i++ {
-		buffer.WriteString(fmt.Sprintf("//%f", array[i]))
+		buffer.WriteString(fmt.Sprintf("$$%f", array[i]))
 	}
 
 	return buffer.String()

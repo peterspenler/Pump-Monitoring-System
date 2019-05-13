@@ -4,7 +4,6 @@ const path = require('path')
 const {download} = require("electron-dl");
 const { dialog } = require('electron')
 const { session } = require('electron')
-//require('./login.js')
 
 let win
 

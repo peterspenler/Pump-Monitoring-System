@@ -11,12 +11,13 @@
 <div id="disconnect-alert">
 	<div class="disconnect-background"></div>
 	<div class="disconnect-dialog data-card">
-		<div class="window-titlebar">Connection Lost</div>
-		<p style="margin:20px">Attempting to reconnect to server</p>
+		<div id="disconnect-title" class="window-titlebar">Connection Lost</div>
+		<p id="disconnect-message" style="margin:20px"/>
 	</div>
 </div>
 
 <!-- NAVIGATION BAR -->
+
 <nav class="navbar" id="sidebar"><br>
 	<div style="padding-bottom:14px">
 		<img src="graphics/GryphEnergySmall.png" style="width:100px;display:block;margin-left:auto;margin-right:auto;">
@@ -26,17 +27,16 @@
 			<hr style="margin-top:-14px;margin-bottom:-2px;">
 			<button id="spress-btn" class="w3-btn" style="width:92%;background-color:#2e6600;color:white;margin:6px;padding:4px;">Suc. Pressure</button>
 			<button id="dpress-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Dis. Pressure</button>
-			<button id="power-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Power</button>
+			<!--<button id="power-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Power</button>-->
 			<button id="torque-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Torque</button>
 			<button id="speed-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px;">Speed</button>
 			<button id="flow-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px">Flow</button>
-			<!-- THIS IS A BUTTON TO DISPLAY EFFICIENCY, HIDDEN BECAUSE THE EFFICIENCY EQUATION
-				IS NOT FULY TESTED YET
+			<!--
 			<button id="eff-btn" class="w3-btn" style="width:92%;background-color:#51b400;color:white;margin:6px;padding:4px">Efficiency</button>
 -->
 			<p style="margin-left:6px">Record Data</p>
 			<hr style="margin-top:-14px;margin-bottom:-2px;">
-			<!-- THESE ARE TEST BUTTONS FOR CLIENT RECORDING AND DATA TRANSFER
+			<!--
 			<button id="rec-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px">Start Recording</button>
 			<button id="test-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px;">TEST FEATURE</button>-->
 			<button id="server-btn" class="w3-btn" style="background-color:#51b400;color:white;width:92%;margin:6px;padding:4px;">Change Server</button>
@@ -79,7 +79,7 @@
 					<tr>
 						<th>Suc. Pressure (psi)</th>
 						<th>Dis. Pressure (psi)</th>
-						<th>Power (kW)</th>
+						<!--<th>Power (kW)</th>-->
 						<th>Torque (Nm)</th>
 						<th>Speed (rpm)</th>
 						<th>Flow (Gal/m)</th>
@@ -88,7 +88,7 @@
 					<tr>
 						<td id="n1">23.4</td>
 						<td id="n2">23.4</td>
-						<td id="n3">23.4</td>
+						<!--<td id="n3">23.4</td>-->
 						<td id="n4">23.4</td>
 						<td id="n5">23.4</td>
 						<td id="n6">23.4</td>

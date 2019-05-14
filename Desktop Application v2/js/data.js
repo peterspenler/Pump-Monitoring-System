@@ -7,28 +7,13 @@ const {DOMAIN} = require('./js/const.js')
 
 //Variable initialization
 var socket
-var page = "front"
-var keepTime = 100;
-var data = {
-	"temp": ["23", "45", "38", "89", "12", "6"],
-    "press":["56", "93", "53", "32"],
-    "torq":["18", "63"],
-    "flow":["27"]
-	};
-var histData = {
-	"temp": [[],[],[],[],[],[]],
-	"press": [[],[],[],[]],
-	"torq": [[],[]],
-	"flow": [[],[]],
-	"time": []
-};
+var keepTime = 100; // how many data points to cache
 var histDataNew = {
 	"vals": [[],[],[],[],[],[],[]],
 	"time": []
 }
 var histTime = 0
-var graphType = 0
-var heartbeat = -1
+
 
 var domain = DOMAIN //This allows the domain to be changed in application
 
@@ -40,6 +25,35 @@ const TORQUE = 2
 const SPEED = 0
 const FLOW = 3
 const EFFICIENCY = 6
+
+const SUC_PRESS_DATA = {name: "Suction Pressure",
+						upper: 50,
+						lower: -10,
+						unit: "psi"}
+const DIS_PRESS_DATA = {name: "Discharge Pressure",
+						upper: 50,
+						lower: -10,
+						unit: "psi"}
+const POWER_DATA = {	name: "Power",
+						upper: 8,
+						lower: 0,
+						unit: "kW"}
+const TORQUE_DATA = {	name: "Torque",
+						upper: 40,
+						lower: 0,
+						unit: "Nm"}
+const SPEED_DATA = {	name: "Speed",
+						upper: 2000,
+						lower: 0,
+						unit: "rpm"}
+const FLOW_DATA = {		name: "Flow",
+						upper: 400,
+						lower: 0,
+						unit: "gpm"}
+const EFFICIENCY_DATA = {name: "Efficiency",
+						upper: 100,
+						lower: 0,
+						unit: "%"}
 
 //Hide images and table which are not visible in the first window
 $('#disconnect-alert').hide()
@@ -150,15 +164,24 @@ var isRecording = 0;
 var startRec
 var endRec
 
+notify("Click on graphs, then use the nav bar to change what they show", 4000)
+
 $('#rec-btn').click(function (){
 	getServertime()
 })
 
 $('#test-btn').click(function (){
 	console.log("click")
-	$('#downloadNotify').css('opacity', '100')
-	setTimeout(function(){$('#downloadNotify').css('opacity', '0')}, 2000)
+	notify("This is a notification")
 })
+
+function notify(msg, length = 2000){
+	$('#downloadNotify').text(msg)
+	$('#downloadNotify').css('opacity', '100')
+	setTimeout(function(){
+		$('#downloadNotify').css('opacity', '0')
+	}, length)
+}
 
 function recordCallback(time){
 	if(isRecording == 1){
@@ -190,21 +213,16 @@ function recordCallback(time){
 }
 
 function downloadFile(name, directory){
-	console.log("cool beans")
+	isRecording = 0;
+	$('#rec-btn').html("Start Recording");
+	$('#rec-btn').css('background-color', '#51b400');
 	ipcRenderer.send("download", {
 	    url: "http://" + domain + "/getRecord/" + name,
 	    properties: {directory: directory}
 	});
 	ipcRenderer.on("download complete", (event, file) => {
-		console.log("NEAT")
 	    console.log(file); // Full file path
-	    isRecording = 0;
-	    $('#downloadNotify').css('opacity', '100')
-	    $('#rec-btn').html("Start Recording");
-		$('#rec-btn').css('background-color', '#51b400');
-		setTimeout(function(){
-			$('#downloadNotify').css('opacity', '0')
-		}, 4000)
+		notify("Download Complete!")
 	});
 }
 
@@ -230,189 +248,90 @@ var lGraphData = SUC_PRESS
 var rGraphData = DIS_PRESS
 checkActiveButtons()
 
-$('#lgraph-btn').click(function (){
-	changeLeft()
-})
-
-$('#rgraph-btn').click(function (){
-	changeRight()
-})
-
-function changeRight(){
-	whichGraph = 'r'
-	$('#lgraph-btn').css('background-color', '51b400');
-	$('#rgraph-btn').css('background-color', '2e6600');
-	$('#graph-data-label').html("Right Graph Data");
-	uncheckGraphButtons();
-	checkActiveButtons();
-}
-
-function changeLeft(){
-	whichGraph = 'l'
-	$('#lgraph-btn').css('background-color', '2e6600');
-	$('#rgraph-btn').css('background-color', '51b400');
-	$('#graph-data-label').html("Left Graph Data");
-	uncheckGraphButtons();
-	checkActiveButtons();
-}
-
 $('#inChart').click(
 	function(event){
-		changeLeft();
+		whichGraph = 'l'
+		$('#graph-data-label').html("Left Graph Data");
+		uncheckGraphButtons();
+		checkActiveButtons();
 	}
 )
 
 $('#outChart').click(
 	function(event){
-		changeRight();
+		whichGraph = 'r'
+		$('#graph-data-label').html("Right Graph Data");
+		uncheckGraphButtons();
+		checkActiveButtons();
 	}
 )
 
-$('#spress-btn').click(function (){
+function updateGraph(reading){
+	var config
 	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[SUC_PRESS]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Suction Pressure (psi)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
-		lGraphData = SUC_PRESS;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[SUC_PRESS]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Suction Pressure (psi)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
-		rGraphData = SUC_PRESS;
+		config = inConfig
+		lGraphData = reading
+	}else{
+		config = outConfig
+		rGraphData = reading
 	}
+	data = graphParams(reading)
+	config.data.datasets[0].data = histDataNew.vals[reading]
+	config.options.scales.yAxes[0].scaleLabel.labelString = data.name + ' (' + data.unit + ')'
+	config.options.scales.yAxes[0].ticks.suggestedMin = data.lower
+	config.options.scales.yAxes[0].ticks.suggestedMax = data.upper
 
 	inChart.update()
 	outChart.update()
 	uncheckGraphButtons()
 	checkActiveButtons()
+}
+
+function graphParams(reading){
+	switch(reading){
+		case SUC_PRESS:
+			return SUC_PRESS_DATA
+		case DIS_PRESS:
+			return DIS_PRESS_DATA
+		case POWER:
+			return POWER_DATA
+		case TORQUE:
+			return TORQUE_DATA
+		case SPEED:
+			return SPEED_DATA
+		case FLOW:
+			return FLOW_DATA
+		case EFFICIENCY:
+			return EFFICIENCY_DATA
+	}
+}
+
+$('#spress-btn').click(function (){
+	updateGraph(SUC_PRESS)
 })
 
 $('#dpress-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[DIS_PRESS]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Discharge Pressure (psi)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
-		lGraphData = DIS_PRESS;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[DIS_PRESS]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Discharge Pressure (psi)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = -10
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 50
-		rGraphData = DIS_PRESS;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(DIS_PRESS)
 })
 
 $('#power-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[POWER]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Power (kW)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 8
-		lGraphData = POWER;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[POWER]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Power (kW)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 8
-		rGraphData = POWER;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(POWER)
 })
 
 $('#torque-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[TORQUE]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Torque (Nm)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 40
-		lGraphData = TORQUE;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[TORQUE]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Torque (Nm)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 40
-		rGraphData = TORQUE;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(TORQUE)
 })
 
 $('#speed-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[SPEED]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Speed (rpm)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 2000
-		lGraphData = SPEED;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[SPEED]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Speed (rpm)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 2000
-		rGraphData = SPEED;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(SPEED)
 })
 
 $('#flow-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[FLOW]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Flow (gpm)'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 400
-		lGraphData = FLOW;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[FLOW]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Flow (gpm)'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 400
-		rGraphData = FLOW;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(FLOW)
 })
 
 $('#eff-btn').click(function (){
-	if(whichGraph == 'l'){
-		inConfig.data.datasets[0].data = histDataNew.vals[EFFICIENCY]
-		inConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Efficiency'
-		inConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		inConfig.options.scales.yAxes[0].ticks.suggestedMax = 100
-		lGraphData = EFFICIENCY;
-	} else{
-		outConfig.data.datasets[0].data = histDataNew.vals[EFFICIENCY]
-		outConfig.options.scales.yAxes[0].scaleLabel.labelString = 'Efficiency'
-		outConfig.options.scales.yAxes[0].ticks.suggestedMin = 0
-		outConfig.options.scales.yAxes[0].ticks.suggestedMax = 100
-		rGraphData = EFFICIENCY;
-	}
-
-	inChart.update()
-	outChart.update()
-	uncheckGraphButtons()
-	checkActiveButtons()
+	updateGraph(EFFICIENCY)
 })
 
 function uncheckGraphButtons(){

@@ -13,13 +13,11 @@ function connect(){
 		console.log("Websocket Connected Successfully")
 		ipcRenderer.send("authCookie")
 		ipcRenderer.on("authCookieReturn", (event, cookie) => {
-			console.log(cookie)
 			socket.send(cookie[0].value)
 		})
 	}
 
 	socket.onmessage = function(msg){
-		console.log(msg)
 
 		data = JSON.parse(msg.data)
 

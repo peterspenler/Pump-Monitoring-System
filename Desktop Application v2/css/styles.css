@@ -169,20 +169,18 @@ form{
 
 .notification{
 	opacity: 0;
-	width:400px;
-	height:40px;
+	padding:10px 6px;
+	max-width: 100%;
 	position:absolute;
-	bottom:34;
-	left:50%;
-	margin-left: -130px;
-	padding-top:6px;
+	bottom:38;
+	left: 54%;
+	transform: translateX(-50%);
 	text-align:center;
 	font-weight: bold;
 	font-size:large;
 	color: white; 
 	background-color:#51b400;
 	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-	-webkit-transition: opacity 400ms;
  	transition: opacity 400ms;
 }
 

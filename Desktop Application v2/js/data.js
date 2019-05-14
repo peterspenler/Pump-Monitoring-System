@@ -60,6 +60,8 @@ var inConfig = {
 			lineTension:0.1
 		}]},
 	options:{
+		responsive: true,
+  		maintainAspectRatio: false,
 		tooltips:{
 			enabled: false
 		},
@@ -104,6 +106,8 @@ var outConfig = {
 			lineTension:0.1
 		}]},
 	options:{
+		responsive: true,
+  		maintainAspectRatio: false,
 		tooltips:{
 			enabled: false
 		},
@@ -222,8 +226,9 @@ function getServertime(){
 //GRAPH MODIFICATION FUNCTIONS
 
 var whichGraph = 'l'
-var lGraphData = 0
-var rGraphData = 1
+var lGraphData = SUC_PRESS
+var rGraphData = DIS_PRESS
+checkActiveButtons()
 
 $('#lgraph-btn').click(function (){
 	changeLeft()

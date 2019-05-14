@@ -11,6 +11,7 @@ function createWindow(){
 	win = new BrowserWindow({
 		minWidth: 1024, 
 		minHeight: 800,
+		maxWidth: 1400,
 		width: 1024,
 		height: 800, 
 		icon: 'graphics/GryphEnergySmall.png'

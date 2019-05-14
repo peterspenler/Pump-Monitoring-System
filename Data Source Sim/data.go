@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"net/http"
 	"flag"
+	//"os"
 )
 
 // This is a tesing program
@@ -25,15 +26,16 @@ func main() {
 	log.Printf("connecting to %s", u.String())
 	
 	header := make(http.Header)
+	for true{
+		c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
+		
+		if err != nil {
+			log.Panic("dial:", err)
+		}
+		defer c.Close()
 
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-	
-	if err != nil {
-		log.Panic("dial:", err)
+		mockSensorValues(c)
 	}
-	defer c.Close()
-
-	mockSensorValues(c)
 }
 
 //Generates random sensor values for testing the server without LabView
@@ -52,8 +54,8 @@ func mockSensorValues(c *websocket.Conn) {
 		return
 	}
 
-	for true {
-
+	for j := 0; j < 100; j++ {
+		fmt.Println(j)
 		for i := 0; i < 6; i++ {
 			temps[i] = float64(Abs(int(temps[i]) + ranGen.Intn(20) - 10))
 		}
@@ -67,16 +69,23 @@ func mockSensorValues(c *websocket.Conn) {
 
 		data = []byte(`SRC` + buildTable(temps[:], "Temperature", 6) + buildTable(press[:], "Pressure", 4) + buildTable(torq[:], "Torque", 2) + buildTable(flow[:], "Flow", 1))
 
-		err := c.WriteMessage(websocket.TextMessage, data)
-
-		if err != nil {
-			fmt.Println("MSG Err:", err)
-			return
-		}
+		go SendMsg(data, c)
 
 		time.Sleep(90 * time.Millisecond)
 	}
 
+}
+
+func SendMsg(data []byte, c *websocket.Conn) {
+
+	c.WriteMessage(websocket.TextMessage, data)
+/*
+	err := c.WriteMessage(websocket.TextMessage, data)
+
+	if err != nil {
+		fmt.Println("MSG Err:", err)
+		os.Exit(1)
+	}*/
 }
 
 // Returns the absolute value of the input

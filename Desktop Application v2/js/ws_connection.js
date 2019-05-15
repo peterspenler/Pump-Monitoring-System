@@ -1,5 +1,4 @@
 //WEBSOCKET CONNECTIONS
-
 module.exports = {
 	connect: connect,
 	heartbeat: heartbeat
@@ -25,21 +24,18 @@ function connect(){
 
 			$('#disconnect-alert').hide()
 
-			$('#n1').text(String(data.measurement[SUC_PRESS]).substring(0,6));
-			$('#n2').text(String(data.measurement[DIS_PRESS]).substring(0,6));
-			//$('#n3').text(String(data.measurement[POWER]).substring(0,6));
-			$('#n4').text(String(data.measurement[TORQUE]).substring(0,6));
-			$('#n5').text(String(data.measurement[SPEED]).substring(0,6));
-			$('#n6').text(String(data.measurement[FLOW]).substring(0,6));
+			$('#n1').text(String(data.measurement[chart.SUC_PRESS]).substring(0,6));
+			$('#n2').text(String(data.measurement[chart.DIS_PRESS]).substring(0,6));
+			//$('#n3').text(String(data.measurement[chart.POWER]).substring(0,6));
+			$('#n4').text(String(data.measurement[chart.TORQUE]).substring(0,6));
+			$('#n5').text(String(data.measurement[chart.SPEED]).substring(0,6));
+			$('#n6').text(String(data.measurement[chart.FLOW]).substring(0,6));
 
 			for(var i = 0; i < 6; i++){
-				histDataNew.vals[i].push(parseFloat(data.measurement[i]));
-				if(histTime > keepTime){
-					histDataNew.vals[i].shift();
-				}
+				chart.addHistValIndex(i, parseFloat(data.measurement[i]))
 			}
 
-			var efficiency = ((9.81 * (histDataNew.vals[5][histDataNew.vals[5].length - 1] * 0.00006309) * ((histDataNew.vals[1][histDataNew.vals[1].length - 1] - histDataNew.vals[0][histDataNew.vals[0].length - 1])/3.2808))/(histDataNew.vals[2][histDataNew.vals[2].length - 1])) * 100
+			var efficiency = chart.getEfficiency()
 
 			if(isNaN(efficiency)){
 				efficiency = 0;
@@ -47,17 +43,10 @@ function connect(){
 
 			$('#n7').text(efficiency.toFixed(3))
 
-			histDataNew.vals[6].push(efficiency);
-			if(histTime > keepTime){
-				histDataNew.vals[6].shift();
-			}
+			chart.addHistValIndex(6, efficiency)
+			chart.addHistTime()
+			chart.checkHistOverflow()
 
-			histDataNew.time.push(histTime)
-			if(histTime > keepTime){
-				histDataNew.time.shift()
-			}
-
-			histTime++;
 			inChart.update();
 			outChart.update();
 			heartbeat = 1;

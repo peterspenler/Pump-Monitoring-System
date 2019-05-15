@@ -186,7 +186,7 @@ form{
 
 .chart-div{
 	margin-top:10px;
-	width:38vw;
+	width:calc(50vw - 130px);
 	height:36vh;
 	position:relative;
 	background-color: white;

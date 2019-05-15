@@ -8,17 +8,17 @@ let win
 
 function createWindow(){
 
+	// This defines the application window
 	win = new BrowserWindow({
 		minWidth: 1024, 
 		minHeight: 800,
-		maxWidth: 1400,
+		//maxWidth: 1400,
 		width: 1024,
 		height: 800, 
 		icon: 'graphics/GryphEnergySmall.png'
 	})
-
-	//win.setResizable(false)
 	
+	// These declaritions initalize the window and define what to do on close
 	win.loadURL(url.format({
     	pathname: path.join(__dirname, 'index.html'),
     	protocol: 'file:',
@@ -29,11 +29,14 @@ function createWindow(){
 		win = null
 	})
 
+	// This is a handler for downloading recording files
 	ipcMain.on("download", (event, info) => {
         download(win, info.url, info.properties)
             .then(dl => win.webContents.send("download complete", dl.getSavePath()))
     });
 
+
+	// This is a handler for setting a cookie
     ipcMain.on("setCookie", (event, info) =>{
     	session.defaultSession.cookies.set({
 	        url: 'http://' + DOMAIN, //the url of the cookie.
@@ -45,6 +48,7 @@ function createWindow(){
     	})
     });
 
+    // This is a handler for accessing the JWT cookie
     ipcMain.on("authCookie", (event, info) => {
     	variable = session.defaultSession.cookies.get({
     		name: "jwt"
@@ -55,6 +59,8 @@ function createWindow(){
     });
 }
 
+// These declarations start the application,
+// tell it when to quit, and what to do on activate
 app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {

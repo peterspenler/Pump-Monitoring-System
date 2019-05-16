@@ -44,7 +44,6 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 			}
 
 			correctpass := verifyPassword(dbpword, password)
-			correctpass = nil //TODO THIS BREAKS AUTHENTICATION
 
 			if correctpass == nil {
 				tokenStr, exptime := createLoginToken(dbuname, dbname, dbid)

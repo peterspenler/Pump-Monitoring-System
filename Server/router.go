@@ -59,18 +59,20 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 		})
 	}
 
-	// This setting handles data transfer from the LabView program via an HTTP GET rather
-	// than via Websockets. This is a temporary function, as there were issues getting the
-	// LabView program to send messages after making a Websocket connection.
+
+	// This setting handles data transfer from the LabView program via an HTTP POST rather
+	// than via Websockets. While using Websockets may be preferable to reduce server load
+	// it is difficult to get them to work in LabView, and this is a reasonable solution.
 	//
-	// There is some future work to perform here.
-	// Most importantly this should be changed to either back to a websocket connection
-	// or into a POST request. This will keep the data out of the URL and increase the
-	// security of the application.
-	r.GET("/data/:key", func(c *gin.Context){
-		fmt.Println("Data")
-		key := c.Param("key")
-		go handleLVData(key, m, heartbeat)
+	// This setting could be replaced with LabView using Websockets to send the data 
+	r.POST("/data/submit", func(c *gin.Context){
+		key := c.PostForm("key")
+		data := c.PostForm("data")
+
+		if key == string(getKey()){
+			handleLVData(data, m, heartbeat)
+			c.String(http.StatusOK, "Cool Stuff, Thanks")
+		}
 	})
 
 	// This setting prints a message to the console if a GET request is made to the

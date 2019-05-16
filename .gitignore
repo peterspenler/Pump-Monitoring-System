@@ -6,6 +6,9 @@
 #Node Modules#
 **/node_modules
 
+#App Distributions#
+**/dist
+
 #Secure Files#
 key.go
 package-lock.json

@@ -10,5 +10,6 @@ func getJWTSecret() []byte{
 }
 
 func getDatabaseAuth() string{
-	return "USER:PASS@/TABLE"
+	return "USER:PASS@/TABLE?interpolateParams=true"
+	//Replace USER, PASS, and TABLE with values
 }

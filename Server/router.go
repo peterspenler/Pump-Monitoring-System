@@ -27,7 +27,7 @@ func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 	{
 		// This prevents clients from making GET requests to the login API
 		api.GET("/login", func(c *gin.Context) {
-			c.Writer.WriteHeader(http.StatusUnauthorized)
+			c.Writer.WriteHeader(http.StatusMethodNotAllowed)
 		})
 
 		// This setting handles authentication on POST requests to the login API

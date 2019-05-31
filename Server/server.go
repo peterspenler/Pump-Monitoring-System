@@ -25,7 +25,8 @@ func main() {
 	// Initialize the heartbeat for checking connection to the
 	// LabView program
 	go heartbeatMonitor(&heartbeat, m)
-
+	
+	// The ":4000" specifies that the server is running on port 4000
 	r.Run(":4000")
 }
 

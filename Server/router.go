@@ -17,8 +17,8 @@ import (
 // Return: gin router 
 func initRouter(m *melody.Melody, usrDB *sql.DB, heartbeat *int) *gin.Engine {
 
-	// This initializes a default gin session in release mode
-	gin.SetMode(gin.ReleaseMode)
+	// This initializes a default gin session
+	//gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
 	// This defines a '/api' URL subgroup

@@ -8,6 +8,7 @@
 
 #App Distributions#
 **/dist
+Server
 
 #Secure Files#
 key.go

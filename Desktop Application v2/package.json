@@ -16,7 +16,7 @@
     "jquery-ui": "^1.12.1"
   },
   "devDependencies": {
-    "electron": "^1.8.3",
+    "electron": "^9.1.0",
     "electron-builder": "^20.34.0"
   },
   "scripts": {
